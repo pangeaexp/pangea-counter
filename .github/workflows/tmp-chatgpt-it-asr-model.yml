@@ -1,4 +1,4 @@
-name: Temp Whisper ASR split bundle
+name: Temp Whisper static binary
 on:
   push:
     branches:
@@ -7,43 +7,20 @@ jobs:
   build-whisper:
     runs-on: ubuntu-latest
     steps:
-      - name: Build whisper.cpp
+      - name: Build static whisper.cpp
         shell: bash
         run: |
           set -euo pipefail
           git clone --depth 1 https://github.com/ggml-org/whisper.cpp.git
-          cmake -S whisper.cpp -B whisper.cpp/build -DCMAKE_BUILD_TYPE=Release -DWHISPER_BUILD_TESTS=OFF -DWHISPER_BUILD_EXAMPLES=ON
+          cmake -S whisper.cpp -B whisper.cpp/build -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DWHISPER_BUILD_TESTS=OFF -DWHISPER_BUILD_EXAMPLES=ON
           cmake --build whisper.cpp/build -j 4
           mkdir -p bundle
           cp whisper.cpp/build/bin/whisper-cli bundle/
-      - name: Fetch and split large-v3-turbo q5 model
-        shell: bash
-        run: |
-          set -euo pipefail
-          curl -L --retry 5 --retry-delay 2 -o ggml-large-v3-turbo-q5_0.bin https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo-q5_0.bin
-          sha256sum ggml-large-v3-turbo-q5_0.bin
-          split -b 300M -d -a 1 ggml-large-v3-turbo-q5_0.bin model.part.
-          mv model.part.0 bundle/model.part.0
-          mv model.part.1 bundle/model.part.1
-          ls -lh bundle
-      - name: Upload binary
+          ldd bundle/whisper-cli || true
+      - name: Upload static binary
         uses: actions/upload-artifact@v4
         with:
-          name: whisper-cli-linux
+          name: whisper-cli-static-linux
           path: bundle/whisper-cli
-          compression-level: 0
-          retention-days: 1
-      - name: Upload model part 0
-        uses: actions/upload-artifact@v4
-        with:
-          name: whisper-turbo-model-part0
-          path: bundle/model.part.0
-          compression-level: 0
-          retention-days: 1
-      - name: Upload model part 1
-        uses: actions/upload-artifact@v4
-        with:
-          name: whisper-turbo-model-part1
-          path: bundle/model.part.1
           compression-level: 0
           retention-days: 1
