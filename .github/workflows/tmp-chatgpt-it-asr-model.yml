@@ -2,7 +2,7 @@ name: Temp Italian ASR model fetch
 on:
   push:
     branches:
-      - tmp-chatgpt-it-asr-model-20261002
+      - main
 jobs:
   fetch-model:
     runs-on: ubuntu-latest
@@ -17,6 +17,8 @@ jobs:
             curl -fsSL "$BASE/$f" -o "it_model/$f"
           done
           curl -fsSL "https://raw.githubusercontent.com/beAWARE-project/ASR/master/resources/acoustic_models/Italian/it/it.dic" -o "it_model/it.dic"
+          curl -fsSL "https://raw.githubusercontent.com/beAWARE-project/ASR/master/resources/acoustic_models/Italian/voxforge_it_sphinx/etc/voxforge_it.lm.dmp" -o "it_model/voxforge_it.lm.dmp"
+          curl -fsSL "https://raw.githubusercontent.com/beAWARE-project/ASR/master/resources/acoustic_models/Italian/voxforge_it_sphinx/etc/voxforge_it_sphinx.dic" -o "it_model/voxforge_it_sphinx.dic"
           ls -lh it_model
       - name: Upload model artifact
         uses: actions/upload-artifact@v4
