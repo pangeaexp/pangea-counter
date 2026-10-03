@@ -1,29 +1,34 @@
-name: Temp Italian ASR model fetch
+name: Temp Whisper ASR fetch
 on:
   push:
     branches:
-      - main
+      - tmp-chatgpt-it-asr-model-20261002
 jobs:
-  fetch-model:
+  build-whisper:
     runs-on: ubuntu-latest
     steps:
-      - name: Fetch Italian PocketSphinx model
+      - name: Build whisper.cpp
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p it_model
-          BASE="https://raw.githubusercontent.com/beAWARE-project/ASR/master/resources/acoustic_models/Italian/cmusphinx-it-5.2/model_parameters/voxforge_it_sphinx.cd_cont_2000"
-          for f in feat.params feature_transform mdef means mixture_weights noisedict transition_matrices variances; do
-            curl -fsSL "$BASE/$f" -o "it_model/$f"
-          done
-          curl -fsSL "https://raw.githubusercontent.com/beAWARE-project/ASR/master/resources/acoustic_models/Italian/it/it.dic" -o "it_model/it.dic"
-          curl -fsSL "https://raw.githubusercontent.com/beAWARE-project/ASR/master/resources/acoustic_models/Italian/voxforge_it_sphinx/etc/voxforge_it.lm.dmp" -o "it_model/voxforge_it.lm.dmp"
-          curl -fsSL "https://raw.githubusercontent.com/beAWARE-project/ASR/master/resources/acoustic_models/Italian/voxforge_it_sphinx/etc/voxforge_it_sphinx.dic" -o "it_model/voxforge_it_sphinx.dic"
-          ls -lh it_model
-      - name: Upload model artifact
+          git clone --depth 1 https://github.com/ggml-org/whisper.cpp.git
+          cmake -S whisper.cpp -B whisper.cpp/build -DCMAKE_BUILD_TYPE=Release -DWHISPER_BUILD_TESTS=OFF -DWHISPER_BUILD_EXAMPLES=ON
+          cmake --build whisper.cpp/build -j 4
+          mkdir -p whisper_bundle
+          cp whisper.cpp/build/bin/whisper-cli whisper_bundle/
+          ldd whisper_bundle/whisper-cli || true
+      - name: Fetch large-v3-turbo q5 model
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -L --retry 5 --retry-delay 2 -o whisper_bundle/ggml-large-v3-turbo-q5_0.bin https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo-q5_0.bin
+          sha256sum whisper_bundle/ggml-large-v3-turbo-q5_0.bin
+          ls -lh whisper_bundle
+      - name: Upload Whisper bundle
         uses: actions/upload-artifact@v4
         with:
-          name: italian-pocketsphinx-model
-          path: it_model
+          name: whisper-large-v3-turbo-q5
+          path: whisper_bundle
+          compression-level: 0
           if-no-files-found: error
           retention-days: 1
