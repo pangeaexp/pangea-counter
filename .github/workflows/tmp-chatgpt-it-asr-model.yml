@@ -1,0 +1,29 @@
+name: Temp Italian ASR model fetch
+on:
+  push:
+    branches:
+      - main
+jobs:
+  fetch-model:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch Italian PocketSphinx model
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p it_model
+          BASE="https://raw.githubusercontent.com/beAWARE-project/ASR/master/resources/acoustic_models/Italian/cmusphinx-it-5.2/model_parameters/voxforge_it_sphinx.cd_cont_2000"
+          for f in feat.params feature_transform mdef means mixture_weights noisedict transition_matrices variances; do
+            curl -fsSL "$BASE/$f" -o "it_model/$f"
+          done
+          curl -fsSL "https://raw.githubusercontent.com/beAWARE-project/ASR/master/resources/acoustic_models/Italian/it/it.dic" -o "it_model/it.dic"
+          curl -fsSL "https://raw.githubusercontent.com/beAWARE-project/ASR/master/resources/acoustic_models/Italian/voxforge_it_sphinx/etc/voxforge_it.lm.dmp" -o "it_model/voxforge_it.lm.dmp"
+          curl -fsSL "https://raw.githubusercontent.com/beAWARE-project/ASR/master/resources/acoustic_models/Italian/voxforge_it_sphinx/etc/voxforge_it_sphinx.dic" -o "it_model/voxforge_it_sphinx.dic"
+          ls -lh it_model
+      - name: Upload model artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: italian-pocketsphinx-model
+          path: it_model
+          if-no-files-found: error
+          retention-days: 1
